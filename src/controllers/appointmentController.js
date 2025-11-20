@@ -86,7 +86,7 @@ export const getAppointmentsForPatient = async (req, res) => {
       JOIN doctors d ON a.doctor_id = d.id
       JOIN users u ON d.user_id = u.id
       WHERE a.patient_id = $1
-      ORDER BY a.id ASC
+      ORDER BY a.id DESC
       `,
       [patientId]
     );
@@ -134,7 +134,7 @@ export const getAppointmentsForDoctor = async (req, res) => {
       FROM appointments a
       JOIN users u ON a.patient_id = u.id
       WHERE a.doctor_id = $1
-      ORDER BY a.id ASC
+      ORDER BY a.id DESC
       `,
       [doctorDbId]
     );
