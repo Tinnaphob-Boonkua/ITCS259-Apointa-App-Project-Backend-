@@ -5,9 +5,21 @@ import { pool } from '../config/db.js';
  * GET /availabilities/doctor/:doctorId
  */
 export const getAvailabilitiesForDoctor = async (req, res) => {
-  const { doctorId } = req.params;
+  const { doctorId } = req.params; // this is actually user_id
 
   try {
+    // Find doctor row by user_id
+    const docRes = await pool.query(
+      'SELECT id FROM doctors WHERE user_id = $1',
+      [doctorId]
+    );
+
+    if (docRes.rows.length === 0) {
+      return res.status(404).json({ message: 'Doctor not found for this user' });
+    }
+
+    const doctorDbId = docRes.rows[0].id; // real doctors.id
+
     const result = await pool.query(
       `
       SELECT id, doctor_id, day_of_week, start_time, end_time
@@ -15,7 +27,7 @@ export const getAvailabilitiesForDoctor = async (req, res) => {
       WHERE doctor_id = $1
       ORDER BY day_of_week, start_time
       `,
-      [doctorId]
+      [doctorDbId]
     );
 
     res.json(result.rows);
@@ -24,6 +36,7 @@ export const getAvailabilitiesForDoctor = async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 };
+
 
 /**
  * POST /availabilities
@@ -45,13 +58,25 @@ export const createAvailability = async (req, res) => {
   }
 
   try {
+    // doctor_id coming from Flutter = user_id
+    const docRes = await pool.query(
+      'SELECT id FROM doctors WHERE user_id = $1',
+      [doctor_id]
+    );
+
+    if (docRes.rows.length === 0) {
+      return res.status(404).json({ message: 'Doctor not found for this user' });
+    }
+
+    const doctorDbId = docRes.rows[0].id; // doctors.id
+
     const result = await pool.query(
       `
       INSERT INTO availabilities (doctor_id, day_of_week, start_time, end_time)
       VALUES ($1, $2, $3, $4)
       RETURNING *
       `,
-      [doctor_id, day_of_week, start_time, end_time]
+      [doctorDbId, day_of_week, start_time, end_time]
     );
 
     res.status(201).json(result.rows[0]);
@@ -60,6 +85,7 @@ export const createAvailability = async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 };
+
 
 /**
  * PATCH /availabilities/:id
