@@ -51,7 +51,7 @@ export const createAppointment = async (req, res) => {
     const result = await pool.query(
       `
       INSERT INTO appointments (doctor_id, patient_id, start_datetime, end_datetime, status)
-      VALUES ($1, $2, $3, $4, 'confirmed')
+      VALUES ($1, $2, $3, $4, 'pending')
       RETURNING *
       `,
       [doctor_id, patient_id, start.toISOString(), end.toISOString()]
@@ -116,7 +116,7 @@ export const getAppointmentsForDoctor = async (req, res) => {
       return res
         .status(404)
         .json({ message: 'Doctor not found for this user' });
-    }
+    }   
 
     const doctorDbId = docRes.rows[0].id; // real doctors.id
 
