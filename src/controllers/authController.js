@@ -1,9 +1,9 @@
-import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { pool } from '../config/db.js';
 
 export const login = async (req, res) => {
   const { email, password } = req.body;
+
   try {
     const result = await pool.query(
       'SELECT * FROM users WHERE email = $1',
@@ -15,8 +15,9 @@ export const login = async (req, res) => {
     }
 
     const user = result.rows[0];
-    const ok = await bcrypt.compare(password, user.password_hash);
-    if (!ok) {
+
+    // Plain-text comparison ONLY – no bcrypt
+    if (password !== user.password) {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
@@ -36,7 +37,7 @@ export const login = async (req, res) => {
       },
     });
   } catch (err) {
-    console.error(err);
+    console.error('Login error:', err);
     res.status(500).json({ message: 'Server error' });
   }
 };
