@@ -103,13 +103,29 @@ export const getAppointmentsForPatient = async (req, res) => {
  * Get all appointments for a doctor
  */
 export const getAppointmentsForDoctor = async (req, res) => {
-  const { doctorId } = req.params;
+  const { doctorId } = req.params; // this is actually user_id
 
   try {
+    // 1) Map user_id -> doctors.id
+    const docRes = await pool.query(
+      'SELECT id FROM doctors WHERE user_id = $1',
+      [doctorId]
+    );
+
+    if (docRes.rows.length === 0) {
+      return res
+        .status(404)
+        .json({ message: 'Doctor not found for this user' });
+    }
+
+    const doctorDbId = docRes.rows[0].id; // real doctors.id
+
+    // 2) Use doctors.id to query appointments
     const result = await pool.query(
       `
       SELECT 
         a.id,
+        a.doctor_id,
         a.start_datetime,
         a.end_datetime,
         a.status,
@@ -120,15 +136,19 @@ export const getAppointmentsForDoctor = async (req, res) => {
       WHERE a.doctor_id = $1
       ORDER BY a.start_datetime ASC
       `,
-      [doctorId]
+      [doctorDbId]
     );
 
     return res.json(result.rows);
   } catch (err) {
     console.error('Error fetching doctor appointments:', err);
-    return res.status(500).json({ message: 'Server error while fetching doctor appointments' });
+    return res
+      .status(500)
+      .json({ message: 'Server error while fetching doctor appointments' });
   }
 };
+
+
 
 /**
  * PATCH /appointments/:id/status
